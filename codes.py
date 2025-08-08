@@ -653,6 +653,7 @@ if uploaded_file:
                         <h4>🚨 {recommendation_level}</h4>
                         <p><strong>High risk detected around week {worst_idx}!</strong></p>
                         <ul>
+                            <li>-------------Farmers-----------------</li>
                             <li>Stagger Planting – Adjust sowing windows to avoid synchronized harvests and market gluts</li>
                             <li>FPO-Led Direct Marketing – Leverage collective sales to institutional buyers for better price realization</li>
                             <li>Farm-Gate Value Addition – Process surplus into storable products to stabilize income during price crashes</li>
