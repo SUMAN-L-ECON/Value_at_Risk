@@ -5,7 +5,7 @@ import numpy as np
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import seaborn as sns
-from scipy.stats import norm
+from scipy.stats import norm, chi2
 from jinja2 import Template
 import warnings
 
@@ -77,7 +77,7 @@ conf_percent = st.sidebar.slider(
     max_value=99,
     value=95,
     step=1,
-    help="95 means you're 95% sure losses won't exceed the predicted amount"
+    help="95 means you're 95% sure losses won't exceed the predicted amount",
 )
 confidence_level = conf_percent / 100.0
 z_score = norm.ppf(1 - confidence_level)
@@ -213,10 +213,10 @@ if uploaded_file:
             log_returns = np.log(series / series.shift(1)).dropna()
             mu, sigma = log_returns.mean(), log_returns.std()
 
-            # Historical VaR: look at empirical quantile of returns
+            # Historical VaR: empirical quantile of returns
             hist_var = np.percentile(log_returns, (1 - confidence_level) * 100)
 
-            # Parametric VaR: assume normal with mu, sigma (quantile of distribution)
+            # Parametric VaR: assume normal with mu, sigma
             param_var = mu + z_score * sigma
 
             # Monte Carlo simulations and CVaR
@@ -289,118 +289,41 @@ if uploaded_file:
             )
             briefs.append((col, brief))
 
-            # # ====== Plot: combined view (Historical distribution + parametric + MC VaR + CVaR) ======
-            # if interactive_plots and PLOTLY_AVAILABLE:
-            #     fig = go.Figure()
-
-            #     # Histogram of historical log-returns
-            #     fig.add_trace(
-            #         go.Histogram(
-            #             x=log_returns,
-            #             nbinsx=50,
-            #             name="Historical Returns",
-            #             opacity=0.6,
-            #         )
-            #     )
-
-            #     # Add parametric normal density curve (scaled)
-            #     xs = np.linspace(log_returns.min(), log_returns.max(), 200)
-            #     pdf_vals = (1 / (sigma * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((xs - mu) / sigma) ** 2)
-            #     # scale pdf to histogram height approximately
-            #     scale_factor = len(log_returns) * (log_returns.max() - log_returns.min()) / 50
-            #     fig.add_trace(go.Scatter(x=xs, y=pdf_vals * scale_factor, mode="lines", name="Parametric Normal (scaled)", line=dict(dash="dot")))
-
-            #     # Vertical lines for VaRs & CVaR
-            #     annotations = []
-            #     fig.add_vline(x=hist_var, line=dict(color="black", dash="dash"), annotation_text=f"Hist VaR {to_pct(hist_var):.2f}%", annotation_position="top left")
-            #     fig.add_vline(x=param_var, line=dict(color="green", dash="dash"), annotation_text=f"Param VaR {to_pct(param_var):.2f}%", annotation_position="top left")
-            #     fig.add_vline(x=mc_var, line=dict(color="red", dash="dash"), annotation_text=f"MC VaR {to_pct(mc_var):.2f}%", annotation_position="top left")
-            #     fig.add_vline(x=mc_cvar, line=dict(color="purple", dash="dash"), annotation_text=f"MC CVaR {to_pct(mc_cvar):.2f}%", annotation_position="bottom left")
-
-            #     fig.update_layout(
-            #         title=f"Risk Distribution & VaR/CVaR - {col}",
-            #         xaxis_title="Log Returns",
-            #         yaxis_title="Frequency / scaled density",
-            #         bargap=0.1,
-            #         height=450,
-            #         showlegend=True,
-            #     )
-            #     st.plotly_chart(fig, use_container_width=True)
-            # else:
-            #     # Matplotlib fallback
-            #     fig, ax = plt.subplots(figsize=(10, 4))
-            #     sns.histplot(log_returns, bins=50, kde=False, ax=ax, color=None)
-            #     # density curve
-            #     xs = np.linspace(log_returns.min(), log_returns.max(), 200)
-            #     pdf_vals = (1 / (sigma * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((xs - mu) / sigma) ** 2)
-            #     # scale pdf
-            #     scale_factor = len(log_returns) * (log_returns.max() - log_returns.min()) / 50
-            #     ax.plot(xs, pdf_vals * scale_factor, linestyle="--", label="Parametric Normal (scaled)")
-            #     # VaR lines
-            #     ax.axvline(hist_var, color="black", linestyle="--", label=f"Historical VaR {to_pct(hist_var):.2f}%")
-            #     ax.axvline(param_var, color="green", linestyle="--", label=f"Parametric VaR {to_pct(param_var):.2f}%")
-            #     ax.axvline(mc_var, color="red", linestyle="--", label=f"MC VaR {to_pct(mc_var):.2f}%")
-            #     ax.axvline(mc_cvar, color="purple", linestyle="--", label=f"MC CVaR {to_pct(mc_cvar):.2f}%")
-            #     ax.set_title(f"Risk Distribution & VaR/CVaR - {col}")
-            #     ax.set_xlabel("Log Returns")
-            #     ax.legend()
-            #     st.pyplot(fig)
-
-        # ====== Plot: combined view (Historical distribution + parametric + MC VaR + CVaR) ======
+            # ====== Plot: combined view (Historical distribution + parametric + MC VaR + CVaR) ======
             if interactive_plots and PLOTLY_AVAILABLE:
                 fig = go.Figure()
-            
+
                 # Histogram of historical log-returns
                 fig.add_trace(
                     go.Histogram(
                         x=log_returns,
                         nbinsx=50,
-                        name="Historical Method",
+                        name="Historical (Empirical)",
                         opacity=0.6,
                     )
                 )
-            
-                # Add parametric normal density curve (scaled)
+
+                # Parametric normal density (scaled) as a line with method legend label
                 xs = np.linspace(log_returns.min(), log_returns.max(), 200)
                 pdf_vals = (1 / (sigma * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((xs - mu) / sigma) ** 2)
                 # scale pdf to histogram height approximately
                 scale_factor = len(log_returns) * (log_returns.max() - log_returns.min()) / 50
-                fig.add_trace(go.Scatter(
-                    x=xs, 
-                    y=pdf_vals * scale_factor, 
-                    mode="lines", 
-                    name="Parametric Normal Method", 
-                    line=dict(dash="dot")
-                ))
-            
-                # Vertical lines for VaRs & CVaR (renamed with method references)
-                fig.add_vline(
-                    x=hist_var, 
-                    line=dict(color="black", dash="dash"), 
-                    annotation_text=f"Historical Method VaR {to_pct(hist_var):.2f}%", 
-                    annotation_position="top left"
-                )
-                fig.add_vline(
-                    x=param_var, 
-                    line=dict(color="green", dash="dash"), 
-                    annotation_text=f"Parametric Normal Method VaR {to_pct(param_var):.2f}%", 
-                    annotation_position="top left"
-                )
-                fig.add_vline(
-                    x=mc_var, 
-                    line=dict(color="red", dash="dash"), 
-                    annotation_text=f"Monte Carlo Method VaR {to_pct(mc_var):.2f}%", 
-                    annotation_position="top left"
-                )
-                fig.add_vline(
-                    x=mc_cvar, 
-                    line=dict(color="purple", dash="dash"), 
-                    annotation_text=f"Monte Carlo Method CVaR {to_pct(mc_cvar):.2f}%", 
-                    annotation_position="bottom left"
-                )
-            
+                fig.add_trace(go.Scatter(x=xs, y=pdf_vals * scale_factor, mode="lines", name="Parametric (Normal)"))
+
+                # Vertical lines for VaRs & CVaR with meaningful legend names
+                fig.add_vline(x=hist_var, line=dict(color="black", dash="dash"), annotation_text=f"Historical VaR {to_pct(hist_var):.2f}%", annotation_position="top left")
+                fig.add_vline(x=param_var, line=dict(color="green", dash="dash"), annotation_text=f"Parametric VaR {to_pct(param_var):.2f}%", annotation_position="top left")
+                fig.add_vline(x=mc_var, line=dict(color="red", dash="dash"), annotation_text=f"Monte Carlo VaR {to_pct(mc_var):.2f}%", annotation_position="top left")
+                fig.add_vline(x=mc_cvar, line=dict(color="purple", dash="dash"), annotation_text=f"Monte Carlo CVaR {to_pct(mc_cvar):.2f}%", annotation_position="bottom left")
+
+                # To show methods in legend explicitly, add invisible scatter traces with method names (helps legend clarity)
+                fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", marker=dict(color="black"), name="Historical VaR"))
+                fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", marker=dict(color="green"), name="Parametric VaR"))
+                fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", marker=dict(color="red"), name="Monte Carlo VaR"))
+                fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", marker=dict(color="purple"), name="Monte Carlo CVaR"))
+
                 fig.update_layout(
-                    title=f"Risk Distribution & VaR/CVaR - {col}",
+                    title=f"Risk Distribution & Methods - {col}",
                     xaxis_title="Log Returns",
                     yaxis_title="Frequency / scaled density",
                     bargap=0.1,
@@ -408,26 +331,20 @@ if uploaded_file:
                     showlegend=True,
                 )
                 st.plotly_chart(fig, use_container_width=True)
-            
             else:
-                # Matplotlib fallback
+                # Matplotlib fallback: label methods clearly in legend
                 fig, ax = plt.subplots(figsize=(10, 4))
-                sns.histplot(log_returns, bins=50, kde=False, ax=ax, label="Historical Method", color=None)
-            
-                # density curve
+                sns.histplot(log_returns, bins=50, kde=False, ax=ax)
                 xs = np.linspace(log_returns.min(), log_returns.max(), 200)
                 pdf_vals = (1 / (sigma * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((xs - mu) / sigma) ** 2)
-                # scale pdf
                 scale_factor = len(log_returns) * (log_returns.max() - log_returns.min()) / 50
-                ax.plot(xs, pdf_vals * scale_factor, linestyle="--", label="Parametric Normal Method")
-            
-                # VaR lines (renamed with method references)
-                ax.axvline(hist_var, color="black", linestyle="--", label=f"Historical Method VaR {to_pct(hist_var):.2f}%")
-                ax.axvline(param_var, color="green", linestyle="--", label=f"Parametric Normal Method VaR {to_pct(param_var):.2f}%")
-                ax.axvline(mc_var, color="red", linestyle="--", label=f"Monte Carlo Method VaR {to_pct(mc_var):.2f}%")
-                ax.axvline(mc_cvar, color="purple", linestyle="--", label=f"Monte Carlo Method CVaR {to_pct(mc_cvar):.2f}%")
-            
-                ax.set_title(f"Risk Distribution & VaR/CVaR - {col}")
+                ax.plot(xs, pdf_vals * scale_factor, linestyle="--", label="Parametric (Normal)")
+                # VaR lines
+                ax.axvline(hist_var, color="black", linestyle="--", label=f"Historical VaR {to_pct(hist_var):.2f}%")
+                ax.axvline(param_var, color="green", linestyle="--", label=f"Parametric VaR {to_pct(param_var):.2f}%")
+                ax.axvline(mc_var, color="red", linestyle="--", label=f"Monte Carlo VaR {to_pct(mc_var):.2f}%")
+                ax.axvline(mc_cvar, color="purple", linestyle="--", label=f"Monte Carlo CVaR {to_pct(mc_cvar):.2f}%")
+                ax.set_title(f"Risk Distribution & Methods - {col}")
                 ax.set_xlabel("Log Returns")
                 ax.legend()
                 st.pyplot(fig)
@@ -487,15 +404,44 @@ if uploaded_file:
 
                 bt_df = pd.DataFrame(backtest_results).set_index("Date")
 
-                # Interactive CVaR backtest plot
+                # -------------------------
+                # Kupiec (Unconditional Coverage) test for VaR breaches
+                # x = observed failures, n = sample size, p = expected failure prob = 1 - confidence_level
+                # LR_uc = -2 * ( log((1-p)^(n-x) p^x) - log((1-p_hat)^(n-x) p_hat^x) )
+                # p-value = 1 - chi2.cdf(LR_uc, df=1)
+                # -------------------------
+                n = len(bt_df)
+                x = bt_df["Breach_VaR"].sum()
+                p = 1 - confidence_level
+                p_hat = x / n if n > 0 else 0.0
+
+                # Guard against zero/one probabilities
+                def safe_log(x):
+                    return np.log(x) if x > 0 else -1e10
+
+                if n > 0:
+                    # Log-likelihood under H0 (p)
+                    ll0 = (n - x) * safe_log(1 - p) + x * safe_log(p)
+                    # Log-likelihood under H1 (p_hat)
+                    # If p_hat is 0 or 1, adjust slightly to avoid -inf
+                    ph = min(max(p_hat, 1e-10), 1 - 1e-10)
+                    ll1 = (n - x) * safe_log(1 - ph) + x * safe_log(ph)
+
+                    LR_uc = -2 * (ll0 - ll1)
+                    kupiec_pvalue = 1 - chi2.cdf(LR_uc, df=1)
+                else:
+                    LR_uc = np.nan
+                    kupiec_pvalue = np.nan
+
+                # Interactive CVaR / Monte Carlo backtest plot with breaches highlighted
                 if interactive_plots and PLOTLY_AVAILABLE:
-                    st.markdown("### 📊 Interactive CVaR Model Testing")
+                    st.markdown("### 📊 Interactive CVaR / Monte Carlo Backtest (with Kupiec Test)")
                     fig = go.Figure()
                     fig.add_trace(
                         go.Scatter(
                             x=bt_df.index,
                             y=((np.exp(bt_df["Actual_Return"]) - 1) * 100),
-                            mode="lines",
+                            mode="lines+markers",
                             name="Actual Weekly Returns (%)",
                             hovertemplate="Date: %{x}<br>Actual Return: %{y:.2f}%<extra></extra>",
                         )
@@ -503,27 +449,90 @@ if uploaded_file:
                     fig.add_trace(
                         go.Scatter(
                             x=bt_df.index,
-                            y=((np.exp(bt_df["MC_CVaR"]) - 1) * 100),
+                            y=((np.exp(bt_df["MC_VaR"]) - 1) * 100),
                             mode="lines",
-                            name="Predicted CVaR (%)",
-                            line=dict(color="red", width=2, dash="dash"),
-                            hovertemplate="Date: %{x}<br>CVaR Prediction: %{y:.2f}%<extra></extra>",
+                            name="Monte Carlo VaR (%)",
+                            line=dict(color="red", dash="dash"),
+                            hovertemplate="Date: %{x}<br>VaR: %{y:.2f}%<extra></extra>",
                         )
                     )
-                    fig.update_layout(title="Model Performance: Predicted vs Actual Risk", xaxis_title="Date", yaxis_title="Weekly Return (%)", height=450, hovermode="x unified")
+                    fig.add_trace(
+                        go.Scatter(
+                            x=bt_df.index,
+                            y=((np.exp(bt_df["MC_CVaR"]) - 1) * 100),
+                            mode="lines",
+                            name="Monte Carlo CVaR (%)",
+                            line=dict(color="purple", dash="dot"),
+                            hovertemplate="Date: %{x}<br>CVaR: %{y:.2f}%<extra></extra>",
+                        )
+                    )
+                    # Breaches markers
+                    breaches = bt_df[bt_df["Breach_VaR"]]
+                    if not breaches.empty:
+                        fig.add_trace(
+                            go.Scatter(
+                                x=breaches.index,
+                                y=((np.exp(breaches["Actual_Return"]) - 1) * 100),
+                                mode="markers",
+                                marker=dict(color="black", size=8, symbol="x"),
+                                name="VaR Breach (Actual < VaR)",
+                                hovertemplate="Date: %{x}<br>Actual: %{y:.2f}%<extra></extra>",
+                            )
+                        )
+
+                    fig.update_layout(
+                        title=f"Backtest: Actual vs Monte Carlo VaR/CVaR ({col}) — Kupiec LR={LR_uc:.2f} p={kupiec_pvalue:.3f}",
+                        xaxis_title="Date",
+                        yaxis_title="Weekly Return (%)",
+                        height=450,
+                        hovermode="x unified",
+                    )
                     st.plotly_chart(fig, use_container_width=True)
                 else:
+                    # Matplotlib fallback plot
                     fig, ax = plt.subplots(figsize=(12, 5))
                     ax.plot(bt_df.index, (np.exp(bt_df["Actual_Return"]) - 1) * 100, label="Actual Returns", alpha=0.7)
-                    ax.plot(bt_df.index, (np.exp(bt_df["MC_CVaR"]) - 1) * 100, label="CVaR Predictions", color="red", linestyle="--")
-                    ax.fill_between(bt_df.index, (np.exp(bt_df["MC_CVaR"]) - 1) * 100, -50, alpha=0.1, color="red")
-                    ax.set_title("Model Performance Testing")
+                    ax.plot(bt_df.index, (np.exp(bt_df["MC_VaR"]) - 1) * 100, label="Monte Carlo VaR", color="red", linestyle="--")
+                    ax.plot(bt_df.index, (np.exp(bt_df["MC_CVaR"]) - 1) * 100, label="Monte Carlo CVaR", color="purple", linestyle="-.")
+                    breaches = bt_df[bt_df["Breach_VaR"]]
+                    if not breaches.empty:
+                        ax.scatter(breaches.index, (np.exp(breaches["Actual_Return"]) - 1) * 100, marker="x", color="black", s=50, label="VaR Breach")
+                    ax.set_title(f"Backtest: Actual vs Monte Carlo VaR/CVaR ({col}) — Kupiec LR={LR_uc:.2f} p={kupiec_pvalue:.3f}")
                     ax.set_ylabel("Weekly Return (%)")
                     ax.legend()
                     ax.grid(True, alpha=0.3)
                     st.pyplot(fig)
 
-                # Model accuracy metrics
+                # Show Kupiec test summary and other metrics
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Observed Breach Rate", f"{(x / n * 100) if n>0 else np.nan:.2f}%")
+                with col2:
+                    st.metric("Expected Breach Rate", f"{(p * 100):.2f}%")
+                with col3:
+                    st.metric("Kupiec p-value", f"{kupiec_pvalue:.3f}" if not np.isnan(kupiec_pvalue) else "N/A")
+
+                if not np.isnan(kupiec_pvalue):
+                    if kupiec_pvalue < 0.05:
+                        st.markdown(
+                            """
+                        <div class="warning-box">
+                            <strong>⚠️ Kupiec Test:</strong> VaR calibration rejected at 5% significance (model may be miscalibrated).
+                        </div>
+                        """,
+                            unsafe_allow_html=True,
+                        )
+                    else:
+                        st.markdown(
+                            """
+                        <div class="success-box">
+                            <strong>✅ Kupiec Test:</strong> VaR calibration NOT rejected (no strong evidence of miscalibration).
+                        </div>
+                        """,
+                            unsafe_allow_html=True,
+                        )
+
+                # Model accuracy metrics (calibration)
                 breach_rate = bt_df["Breach_CVaR"].mean() * 100
                 expected_rate = (1 - confidence_level) * 100
 
@@ -531,16 +540,16 @@ if uploaded_file:
                 with col1:
                     st.metric("Model Calibration (approx)", f"{100 - abs(breach_rate - expected_rate):.1f}%")
                 with col2:
-                    st.metric("Actual Breach Rate", f"{breach_rate:.1f}%")
+                    st.metric("Actual Breach Rate (CVaR)", f"{breach_rate:.1f}%")
                 with col3:
-                    st.metric("Expected Breach Rate", f"{expected_rate:.1f}%")
+                    st.metric("Expected Breach Rate (CVaR)", f"{expected_rate:.1f}%")
 
                 if abs(breach_rate - expected_rate) < 2:
                     st.markdown(
                         """
                     <div class="success-box">
                         <strong>✅ Model is Working Well!</strong><br>
-                        The breach rate closely matches expectation.
+                        The breach rate closely matches actual expectation.
                     </div>
                     """,
                         unsafe_allow_html=True,
@@ -660,7 +669,6 @@ if uploaded_file:
                 recommendation_level = "NORMAL"
                 rec_type = "success"
 
-            # Properly aligned and not mis-indented
             if rec_type == "error":
                 st.markdown(
                     f"""
@@ -784,7 +792,7 @@ st.markdown(
         <div><strong>🎓 University:</strong> UAS Bengaluru</div>
     </div>
     <p style="font-size: 12px; color: #999; margin-top: 15px;">
-        Version 2.0 | Enhanced for Professional Use | Updated {pd.Timestamp.now().strftime("%B %Y")}
+        Version 2.1 | Enhanced for Professional Use | Updated {pd.Timestamp.now().strftime("%B %Y")}
     </p>
 </div>
 """,
