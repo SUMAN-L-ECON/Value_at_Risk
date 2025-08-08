@@ -10,7 +10,7 @@ from jinja2 import Template
 import warnings
 
 warnings.filterwarnings("ignore")
-np.random.seed(42)
+np.random.seed(44)
 
 # Try import plotly for interactive charts
 try:
@@ -220,7 +220,7 @@ if uploaded_file:
             param_var = mu + z_score * sigma
 
             # Monte Carlo simulations and CVaR
-            np.random.seed(42)
+            np.random.seed(44)
             sim_returns = np.random.normal(mu, sigma, size=int(num_simulations))
             mc_var = np.percentile(sim_returns, (1 - confidence_level) * 100)
             mc_cvar = sim_returns[sim_returns <= mc_var].mean()
@@ -311,10 +311,10 @@ if uploaded_file:
                 fig.add_trace(go.Scatter(x=xs, y=pdf_vals * scale_factor, mode="lines", name="Parametric (Normal)"))
 
                 # Vertical lines for VaRs & CVaR with meaningful legend names
-                fig.add_vline(x=hist_var, line=dict(color="black", dash="dash"), annotation_text=f"Historical VaR {to_pct(hist_var):.2f}%", annotation_position="top left")
-                fig.add_vline(x=param_var, line=dict(color="green", dash="dash"), annotation_text=f"Parametric VaR {to_pct(param_var):.2f}%", annotation_position="top left")
-                fig.add_vline(x=mc_var, line=dict(color="red", dash="dash"), annotation_text=f"Monte Carlo VaR {to_pct(mc_var):.2f}%", annotation_position="top left")
-                fig.add_vline(x=mc_cvar, line=dict(color="purple", dash="dash"), annotation_text=f"Monte Carlo CVaR {to_pct(mc_cvar):.2f}%", annotation_position="bottom left")
+                fig.add_vline(x=hist_var, line=dict(color="black", dash="dash")
+                fig.add_vline(x=param_var, line=dict(color="green", dash="dash")
+                fig.add_vline(x=mc_var, line=dict(color="red", dash="dash")
+                fig.add_vline(x=mc_cvar, line=dict(color="purple", dash="dash"), annotation_text=f"Monte Carlo CVaR {to_pct(mc_cvar):.2f}%", annotation_position="top left")
 
                 # To show methods in legend explicitly, add invisible scatter traces with method names (helps legend clarity)
                 fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", marker=dict(color="black"), name="Historical VaR"))
