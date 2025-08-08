@@ -6,60 +6,76 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import norm, chi2
 from jinja2 import Template
+import plotly.graph_objects as go
+import hashlib
 import warnings
+
 warnings.filterwarnings("ignore")
 
-# Try import plotly — used for interactive CVaR plots & forecast
-try:
-    import plotly.graph_objects as go
-    import plotly.express as px
-    PLOTLY_AVAILABLE = True
-except Exception:
-    PLOTLY_AVAILABLE = False
-
-# ===================== Page config =====================
-st.set_page_config(page_title="Value_at_risk Analysis App [Suman_econ_UAS(B)]", layout="wide")
+# -------------------- Page config --------------------
+st.set_page_config(page_title="Value_at_Risk Analysis App [Suman_econ_UAS(B)]",
+                   layout="wide")
 st.title("📉 Value at Risk Analysis App — Suman_econ_UAS(B)")
 
 st.markdown("""
 ### 📌 Instructions Before Upload:
-- Date column will be automatically converted to datetime and set as index.
+- Date column will be automatically converted to datetime and set as index (column named `Date`).
 - File format: `.csv`, `.xls`, or `.xlsx`.
-- Data should contain at least one price series (numeric).
-- Missing values will be handled (imputed/dropped) automatically.
+- Upload should contain at least one numeric price series (e.g., Modal).
+- Missing values will be handled (imputed or dropped if minimal).
 """)
 
-# ===================== Sidebar Controls =====================
+# -------------------- Sidebar controls --------------------
 st.sidebar.header("Analysis Controls")
-
-# Confidence level slider (user requested)
 confidence_level = st.sidebar.slider("Confidence Level (VaR / CVaR)", min_value=0.90, max_value=0.999, value=0.95, step=0.01, format="%.3f")
+num_sim = st.sidebar.number_input("Monte Carlo simulations", min_value=1000, max_value=200000, value=10000, step=1000)
+forecast_horizon = st.sidebar.number_input("Forecast horizon (weeks)", min_value=1, max_value=52, value=12, step=1)
+rolling_window = st.sidebar.number_input("Rolling window for backtest (weeks)", min_value=20, max_value=260, value=52, step=1)
+run_button = st.sidebar.button("Run Analysis")
+
 z_score = norm.ppf(1 - confidence_level)
 
-# Monte Carlo simulations input
-num_simulations = st.sidebar.number_input("Monte Carlo simulations", min_value=1000, max_value=200000, value=10000, step=1000)
+# -------------------- File upload --------------------
+uploaded_file = st.file_uploader("Upload your crop market data (CSV, XLS, XLSX)", type=["csv", "xls", "xlsx"])
 
-# Rolling window for backtesting
-rolling_window = st.sidebar.number_input("Rolling window for backtesting (weeks)", min_value=10, max_value=260, value=52, step=1)
+def deterministic_seed_from_series(series: pd.Series) -> int:
+    """
+    Create a deterministic 32-bit seed from a series values so Monte Carlo is reproducible
+    for the same dataset.
+    """
+    # Use last 200 values if long (keeps seed stable)
+    arr = series.dropna().values
+    if len(arr) == 0:
+        base = b"empty"
+    else:
+        cut = arr[-200:] if len(arr) > 200 else arr
+        base = cut.tobytes()
+    h = hashlib.sha256(base).digest()
+    # take first 4 bytes as little-endian int
+    seed = int.from_bytes(h[:4], "little")
+    return seed
 
-# Forecast horizon for CVaR forecast
-forecast_horizon = st.sidebar.number_input("Forecast horizon (weeks) for CVaR forecast", min_value=4, max_value=52, value=26, step=1)
+def make_policy_interpretation(col, breach_rate, cvar_pct, mc_cvar_pct):
+    """
+    Short policy interpretation template — actionable and clear.
+    """
+    t = Template("""
+    **Market:** {{market}}
+    - Observed breach rate (CVaR backtest): **{{breach_rate:.2f}}%** (nominal: {{nominal:.2f}}%)
+    - Estimated CVaR (recent window): **{{cvar:.2f}}%**
+    - Monte Carlo CVaR: **{{mc_cvar:.2f}}%**
+    
+    **Interpretation / Policy notes**
+    1. If observed breach > nominal, tail risk is underestimated — consider buffer stocks or emergency procurement triggers.
+    2. If CVaR is large (absolute), consider price stabilization (eg: forward contracting, targeted procurement).
+    3. Increase monitoring frequency for supply-side indicators (arrivals, weather alerts). 
+    4. Suggest stress-scenarios for planning: repeat worst 5% shocks for budget & logistics planning.
+    """)
+    return t.render(market=col, breach_rate=breach_rate, nominal=(1 - confidence_level) * 100, cvar=cvar_pct, mc_cvar=mc_cvar_pct)
 
-# Quick toggles
-st.sidebar.markdown("---")
-run_forecast = st.sidebar.checkbox("Run near-future CVaR forecast", value=True)
-interactive_cvar = st.sidebar.checkbox("Show interactive CVaR backtest plot", value=True)
-st.sidebar.markdown("---")
-st.sidebar.write("Default sim count: 10000. Increase if you need smoother tails (slower).")
-
-# ===================== File upload =====================
-uploaded_file = st.file_uploader("Upload your crop market data (weekly suggested)", type=["csv", "xls", "xlsx"])
-
-if not PLOTLY_AVAILABLE:
-    st.warning("Plotly is not installed. Interactive CVaR plots will not be available. Install with `pip install plotly`.")
-
-if uploaded_file:
-    # Read
+# -------------------- Main run --------------------
+if uploaded_file and run_button:
+    # Read file
     if uploaded_file.name.endswith(".csv"):
         df = pd.read_csv(uploaded_file)
     else:
@@ -72,24 +88,22 @@ if uploaded_file:
         df.set_index('Date', inplace=True)
         df = df.sort_index()
 
-    st.markdown(f"**Date Range:** {df.index.min().date()} to {df.index.max().date()}")
-
-    # Column selection
+    st.markdown(f"**Date Range:** {df.index.min().date()} — {df.index.max().date()}")
     numeric_cols = df.select_dtypes(include='number').columns.tolist()
-    selected_col = st.selectbox("Select Market Price Column for VaR analysis", options=['All'] + numeric_cols)
+    if not numeric_cols:
+        st.error("No numeric columns detected. Please upload a dataset with a price/arrival series.")
+        st.stop()
 
-    # Date range selection (main area)
-    date_range = st.date_input("Select date range to analyze", [df.index.min(), df.index.max()])
+    selected_col = st.selectbox("Select Market Price Column (for VaR/CVaR)", options=['All'] + numeric_cols)
+    date_range = st.date_input("Select date range", [df.index.min(), df.index.max()])
     df = df.loc[(df.index >= pd.to_datetime(date_range[0])) & (df.index <= pd.to_datetime(date_range[1]))]
 
     analysis_cols = numeric_cols if selected_col == 'All' else [selected_col]
 
-    # Keep earlier defaults/variables
-    window = rolling_window
     results, briefs = [], []
 
-    # === VaR Analysis (as before) ===
     for col in analysis_cols:
+        # Prepare series
         series = df[col].copy()
         series.replace(0, np.nan, inplace=True)
         series.dropna(inplace=True)
@@ -98,53 +112,42 @@ if uploaded_file:
             st.warning(f"Not enough data points in {col} to compute risk models.")
             continue
 
+        # Log returns
         log_returns = np.log(series / series.shift(1)).dropna()
         mu, sigma = log_returns.mean(), log_returns.std()
 
         # Historical VaR
         hist_var = np.percentile(log_returns, (1 - confidence_level) * 100)
+
         # Parametric VaR
         param_var = mu + z_score * sigma
-        # Monte Carlo VaR & CVaR (global simulation)
-        np.random.seed(143) 
-        sim_returns = np.random.normal(mu, sigma, size=int(num_simulations))
+
+        # Deterministic RNG for reproducibility per series
+        seed = deterministic_seed_from_series(series)
+        rng = np.random.default_rng(seed)
+
+        # Monte Carlo returns (single-step) using mu,sigma
+        sim_returns = rng.normal(mu, sigma, size=num_sim)
         mc_var = np.percentile(sim_returns, (1 - confidence_level) * 100)
         mc_cvar = sim_returns[sim_returns <= mc_var].mean()
 
+        # Save results (percent)
         results.append({
             "Market": col,
-            "Historical VaR (%)": round((np.exp(hist_var) - 1) * 100, 3),
-            "Parametric VaR (%)": round((np.exp(param_var) - 1) * 100, 3),
-            "Monte Carlo VaR (%)": round((np.exp(mc_var) - 1) * 100, 3),
-            "Monte Carlo CVaR (%)": round((np.exp(mc_cvar) - 1) * 100, 3),
+            "Historical VaR (%)": round((np.exp(hist_var) - 1) * 100, 4),
+            "Parametric VaR (%)": round((np.exp(param_var) - 1) * 100, 4),
+            "Monte Carlo VaR (%)": round((np.exp(mc_var) - 1) * 100, 4),
+            "Monte Carlo CVaR (%)": round((np.exp(mc_cvar) - 1) * 100, 4),
         })
 
-        # Automated policy brief with interpretation improvements
-        brief_template = Template("""
-        **Market:** {{ market }}
+        # automated brief with interpretation
+        brief_text = make_policy_interpretation(col,
+                                               breach_rate=0.0,  # placeholder; updated after backtest if available
+                                               cvar_pct=(np.exp(hist_var) - 1) * 100,
+                                               mc_cvar_pct=(np.exp(mc_cvar) - 1) * 100)
+        briefs.append((col, brief_text))
 
-        **Summary (95% default unless changed):**
-        - Historical VaR: {{ hist }}%
-        - Parametric VaR: {{ param }}%
-        - Monte Carlo VaR: {{ mc }}%
-        - Monte Carlo CVaR (Expected Shortfall): {{ cvar }}%
-
-        **Interpretation & Policy Implications**
-        - The Monte Carlo CVaR indicates the expected extreme weekly loss of about **{{ cvar }}%** in the worst 5% of cases.
-        - If CVaR is materially larger (more negative) than Historical VaR, this suggests **fat tails** or more frequent extreme losses — recommend stress testing inventories and contingency purchase plans.
-        - If Parametric VaR is less conservative than Historical/MC measures, parametric Gaussian assumptions may understate risk — prefer MC-based or historical measures for policy framing.
-        - Suggested policy actions: maintain buffer stocks, forward contracting for 10-20% of expected arrivals during peak season, and prepare rapid procurement funding to stabilize supply.
-        """)
-        brief = brief_template.render(
-            market=col,
-            hist=round((np.exp(hist_var) - 1) * 100, 3),
-            param=round((np.exp(param_var) - 1) * 100, 3),
-            mc=round((np.exp(mc_var) - 1) * 100, 3),
-            cvar=round((np.exp(mc_cvar) - 1) * 100, 3)
-        )
-        briefs.append((col, brief))
-
-        # Monte Carlo histogram (keeps existing Matplotlib/Seaborn display)
+        # Plot: Monte Carlo histogram (static matplotlib kept as before)
         fig, ax = plt.subplots()
         sns.histplot(sim_returns, bins=50, kde=True, ax=ax)
         ax.axvline(mc_var, color='red', linestyle='--', label=f"VaR {int(confidence_level*100)}%")
@@ -154,39 +157,43 @@ if uploaded_file:
         ax.legend()
         st.pyplot(fig)
 
-    # Display results and policy briefs
+    # Show results table
     if results:
         st.subheader("📋 Model Comparison Table")
         st.dataframe(pd.DataFrame(results).set_index("Market"))
 
+    # Show briefs (these will be updated later if backtest runs)
     if briefs:
-        st.subheader("📝 Automated Policy Briefs (Interpretations)")
+        st.subheader("📝 Automated Policy Briefs")
         for market, text in briefs:
-            with st.expander(f"Policy Brief for {market}"):
+            with st.expander(f"Policy Brief (initial) for {market}"):
                 st.markdown(text)
 
-    # === Monte Carlo VaR Backtesting (existing flow) ===
+    # -------------------- Backtesting if required columns exist --------------------
     if 'Modal' in df.columns and 'Arrivals' in df.columns:
         st.subheader("🔎 Monte Carlo VaR Backtesting (Log Returns ~ Log Arrivals)")
-
         ds = df[['Modal', 'Arrivals']].copy()
         ds['Log_Returns'] = np.log(ds['Modal'] / ds['Modal'].shift(1))
-        # For arrivals, avoid zeros and take log; fill small gaps sensibly
         ds['Log_Arrivals'] = np.log(ds['Arrivals'].replace(0, np.nan)).fillna(method='bfill')
         ds.dropna(inplace=True)
 
+        # Basic backtest for VaR and CVaR using rolling window
         backtest_results = []
-        # run rolling backtest for VaR
-        for i in range(window, len(ds)):
-            train = ds.iloc[i - window:i]
+        for i in range(int(rolling_window), len(ds)):
+            train = ds.iloc[i - int(rolling_window):i]
             test = ds.iloc[i]
+
             X = sm.add_constant(train['Log_Arrivals'])
             y = train['Log_Returns']
             model = sm.OLS(y, X).fit()
 
-            sim_arr = np.random.normal(train['Log_Arrivals'].mean(), train['Log_Arrivals'].std(), int(num_simulations))
+            # deterministic RNG using training modal series for reproducibility
+            seed_bt = deterministic_seed_from_series(train['Modal'])
+            rng_bt = np.random.default_rng(seed_bt)
+
+            sim_arr = rng_bt.normal(train['Log_Arrivals'].mean(), train['Log_Arrivals'].std(), num_sim)
             sim_mu = model.params[0] + model.params[1] * sim_arr
-            sim_ret = np.random.normal(sim_mu, model.resid.std(), size=int(num_simulations))
+            sim_ret = rng_bt.normal(sim_mu, model.resid.std(), size=num_sim)
 
             mc_var_bt = np.percentile(sim_ret, (1 - confidence_level) * 100)
             mc_cvar_bt = sim_ret[sim_ret <= mc_var_bt].mean()
@@ -203,18 +210,18 @@ if uploaded_file:
 
         bt_df = pd.DataFrame(backtest_results).set_index('Date')
         bt_df['Breach_VaR'] = bt_df['Breach_VaR'].astype(int)
-        # Show line chart (matplotlib/st.line_chart kept)
-        st.line_chart(bt_df[['Actual_Return', 'MC_VaR']])
-        st.markdown(f"**Observed Breach Rate (VaR):** {bt_df['Breach_VaR'].mean() * 100:.2f}%")
+        bt_df['Breach_CVaR'] = bt_df['Breach_CVaR'].astype(int)
 
-        # Kupiec Test as before
+        st.markdown(f"**Observed Breach Rate (VaR):** {bt_df['Breach_VaR'].mean() * 100:.2f}%")
+        st.markdown(f"**Observed Breach Rate (CVaR):** {bt_df['Breach_CVaR'].mean() * 100:.2f}%")
+
+        # Kupiec test for VaR (as earlier)
         F = bt_df['Breach_VaR'].sum()
         T = len(bt_df)
         p = 1 - confidence_level
         observed_p = bt_df['Breach_VaR'].mean()
-        # small numerical guards
-        observed_p = np.clip(observed_p, 1e-8, 1 - 1e-8)
-        p = np.clip(p, 1e-8, 1 - 1e-8)
+        # avoid log(0)
+        observed_p = max(min(observed_p, 1 - 1e-10), 1e-10)
         stat = -2 * np.log(((1 - p) ** (T - F) * p ** F) / ((1 - observed_p) ** (T - F) * observed_p ** F))
         p_val = 1 - chi2.cdf(stat, df=1)
         st.markdown(f"**Kupiec's POF Test Statistic:** {stat:.4f}")
@@ -224,22 +231,64 @@ if uploaded_file:
         else:
             st.success("✅ VaR model fits well (fail to reject null hypothesis).")
 
-        # === Optimized CVaR Backtesting (rolling) ===
-        st.subheader("📊 Optimized CVaR Backtesting (rolling)")
+        # Update briefs with actual breach info and policy notes
+        breach_rate_cvar_pct = bt_df['Breach_CVaR'].mean() * 100
+        # Update the first brief if available (safe updating)
+        if briefs:
+            updated_briefs = []
+            for market, _text in briefs:
+                # compute mc_cvar_pct for that market if exists in results
+                matching = [r for r in results if r['Market'] == market]
+                mc_cvar_pct = matching[0]['Monte Carlo CVaR (%)'] if matching else np.nan
+                new_text = make_policy_interpretation(market, breach_rate_cvar_pct, cvar_pct=(np.exp(hist_var) - 1) * 100 if 'hist_var' in locals() else np.nan, mc_cvar_pct=mc_cvar_pct)
+                updated_briefs.append((market, new_text))
+            # display updated briefs
+            st.subheader("📝 Updated Policy Briefs (Post-Backtest)")
+            for market, text in updated_briefs:
+                with st.expander(f"Policy Brief (backtest) for {market}"):
+                    st.markdown(text)
+
+        # Interactive CVaR Backtest Plot using Plotly
+        st.subheader("📊 Interactive CVaR Backtest Plot")
+        # convert to percentage for plotting
+        plot_df = bt_df.copy()
+        plot_df['Actual_Return_pct'] = (np.exp(plot_df['Actual_Return']) - 1) * 100
+        plot_df['MC_CVaR_pct'] = (np.exp(plot_df['MC_CVaR']) - 1) * 100
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=plot_df.index, y=plot_df['Actual_Return_pct'],
+                                 mode='lines+markers', name='Actual Return (%)'))
+        fig.add_trace(go.Scatter(x=plot_df.index, y=plot_df['MC_CVaR_pct'],
+                                 mode='lines', name=f'Predicted CVaR {int(confidence_level*100)}% (%)'))
+        fig.update_layout(title="Interactive Backtest: Actual Return vs Predicted CVaR",
+                          xaxis_title="Date", yaxis_title="Return (%)",
+                          hovermode="x unified")
+        st.plotly_chart(fig, use_container_width=True)
+
+        # -------------------- Optimized CVaR Backtesting (reproducible) --------------------
+        st.subheader("🔁 Optimized CVaR Backtesting (Deterministic RNG)")
 
         actual_returns = []
         predicted_cvar_pct = []
 
-        for i in range(rolling_window, len(ds)):
-            train = ds.iloc[i - rolling_window:i]
+        # use ds series seed for reproducibility
+        seed_ds = deterministic_seed_from_series(ds['Modal'])
+        rng_ds = np.random.default_rng(seed_ds)
+
+        for i in range(int(rolling_window), len(ds)):
+            train = ds.iloc[i - int(rolling_window):i]
             test = ds.iloc[i]
 
             model = sm.OLS(train["Log_Returns"], sm.add_constant(train["Log_Arrivals"])).fit()
             resid_sigma = model.resid.std()
 
-            sim_arrivals = np.random.normal(train["Log_Arrivals"].mean(), train["Log_Arrivals"].std(), int(num_simulations))
+            # seed per rolling window to keep deterministic reproducibility
+            seed_window = deterministic_seed_from_series(train['Modal'])
+            rng_window = np.random.default_rng(seed_window)
+
+            sim_arrivals = rng_window.normal(train["Log_Arrivals"].mean(), train["Log_Arrivals"].std(), num_sim)
             sim_mu = model.params[0] + model.params[1] * sim_arrivals
-            sim_returns = np.random.normal(sim_mu, resid_sigma, int(num_simulations))
+            sim_returns = rng_window.normal(sim_mu, resid_sigma, num_sim)
 
             var = np.percentile(sim_returns, (1 - confidence_level) * 100)
             cvar = sim_returns[sim_returns <= var].mean()
@@ -251,125 +300,107 @@ if uploaded_file:
             predicted_cvar_pct.append(cvar_pct)
 
         results_df = pd.DataFrame({
-            "Date": ds.index[rolling_window:],
+            "Date": ds.index[int(rolling_window):],
             "Actual_Return (%)": actual_returns,
             "Predicted_CVaR (%)": predicted_cvar_pct
         })
-        results_df = results_df.set_index("Date")
         results_df["Breached_CVaR"] = results_df["Actual_Return (%)"] < results_df["Predicted_CVaR (%)"]
 
         breach_rate = results_df["Breached_CVaR"].mean() * 100
-        st.markdown(f"**Observed Breach Rate (CVaR):** {breach_rate:.2f}%")
+        st.markdown(f"**Observed Breach Rate (Optimized CVaR):** {breach_rate:.2f}%")
         st.markdown("**Expected (Nominal) Breach Rate:** {:.2f}%".format((1 - confidence_level) * 100))
         if breach_rate > (1 - confidence_level) * 100:
             st.error("🔴 CVaR underestimates tail risk.")
         else:
             st.success("🟢 CVaR appears conservative or well-calibrated.")
 
-        # Matplotlib visualization (keeps previous styling)
-        fig, ax = plt.subplots(figsize=(12, 6))
-        ax.plot(results_df.index, results_df["Actual_Return (%)"], label="Actual Return")
-        ax.plot(results_df.index, results_df["Predicted_CVaR (%)"], label="Predicted CVaR")
-        ax.fill_between(results_df.index, results_df["Predicted_CVaR (%)"], -50, alpha=0.1)
-        ax.axhline(0, linestyle='--', color='black', linewidth=0.8)
-        ax.set_title("Optimized Backtest: CVaR for Weekly Tomato Prices")
-        ax.set_xlabel("Date")
-        ax.set_ylabel("Weekly Return (%)")
-        ax.legend()
-        ax.grid(True)
-        st.pyplot(fig)
+        # Plot static CVaR backtest (matplotlib) kept for users who like it
+        fig2, ax2 = plt.subplots(figsize=(12, 6))
+        ax2.plot(results_df["Date"], results_df["Actual_Return (%)"], label="Actual Return")
+        ax2.plot(results_df["Date"], results_df["Predicted_CVaR (%)"], label="Predicted CVaR")
+        ax2.fill_between(results_df["Date"], results_df["Predicted_CVaR (%)"], -50, alpha=0.1)
+        ax2.axhline(0, linestyle='--', color='black', linewidth=0.8)
+        ax2.set_title("Optimized Backtest: CVaR for Weekly Prices")
+        ax2.set_xlabel("Date")
+        ax2.set_ylabel("Weekly Return (%)")
+        ax2.legend()
+        ax2.grid(True)
+        st.pyplot(fig2)
 
-        # === Interactive CVaR plot (Plotly) ===
-        if interactive_cvar and PLOTLY_AVAILABLE:
-            st.markdown("**Interactive CVaR Backtest (zoom & hover):**")
-            fig_i = go.Figure()
-            fig_i.add_trace(go.Scatter(
-                x=results_df.index, y=results_df["Actual_Return (%)"],
-                mode='lines+markers', name='Actual Return', hovertemplate='%{x|%Y-%m-%d}<br>Actual: %{y:.3f}%'
-            ))
-            fig_i.add_trace(go.Scatter(
-                x=results_df.index, y=results_df["Predicted_CVaR (%)"],
-                mode='lines+markers', name='Predicted CVaR', hovertemplate='%{x|%Y-%m-%d}<br>Pred CVaR: %{y:.3f}%'
-            ))
-            fig_i.update_layout(
-                height=500,
-                xaxis_title="Date",
-                yaxis_title="Weekly Return (%)",
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-            )
-            st.plotly_chart(fig_i, use_container_width=True)
-        elif interactive_cvar and not PLOTLY_AVAILABLE:
-            st.info("Install plotly (`pip install plotly`) to enable interactive CVaR plot.")
+        # -------------------- Forecast: when the worst CVaR fall will occur --------------------
+        st.subheader("🔮 Forecast: When might the worst CVaR fall occur?")
 
-        # === Near-future CVaR Forecast (Monte Carlo per future week) ===
-        if run_forecast:
-            st.subheader("🔮 Near-future CVaR Forecast (Monte Carlo scenarios)")
+        # Use deterministic RNG using last modal series
+        seed_forecast = deterministic_seed_from_series(ds['Modal'])
+        rng_fore = np.random.default_rng(seed_forecast)
 
-            # Use latest rolling window to estimate model
-            train_latest = ds.iloc[-rolling_window:]
-            model_latest = sm.OLS(train_latest["Log_Returns"], sm.add_constant(train_latest["Log_Arrivals"])).fit()
-            mu_arr = train_latest["Log_Arrivals"].mean()
-            sigma_arr = train_latest["Log_Arrivals"].std()
-            resid_sigma = model_latest.resid.std()
+        # For forecasting use regression if available or simple mu/sigma
+        last_train = ds.iloc[-int(rolling_window):] if len(ds) >= int(rolling_window) else ds
+        try:
+            reg = sm.OLS(last_train["Log_Returns"], sm.add_constant(last_train["Log_Arrivals"])).fit()
+            use_regression = True
+        except Exception:
+            use_regression = False
 
-            # For each horizon week, compute CVaR by simulating arrivals and returns
-            forecast_weeks = list(range(1, int(forecast_horizon) + 1))
-            forecast_cvars = []
+        # collect index offsets where the minimum return occurs in each simulation
+        min_positions = []
+        sims = num_sim  # use same num_sim
+        horizon = int(forecast_horizon)
 
-            for h in forecast_weeks:
-                # naive assumption: arrivals each future week IID ~ Normal(mu_arr, sigma_arr)
-                sim_arrivals_future = np.random.normal(mu_arr, sigma_arr, size=(int(num_simulations),))  # simulate arrivals for week h
-                sim_mu_future = model_latest.params[0] + model_latest.params[1] * sim_arrivals_future
-                # returns conditional on simulated mean, adding residual volatility
-                sim_returns_future = np.random.normal(sim_mu_future, resid_sigma, size=(int(num_simulations),))
-                var_future = np.percentile(sim_returns_future, (1 - confidence_level) * 100)
-                cvar_future = sim_returns_future[sim_returns_future <= var_future].mean()
-                forecast_cvars.append((h, (np.exp(cvar_future) - 1) * 100))  # in percent
+        # Pre-compute last date and weekly frequency assumption
+        last_date = ds.index[-1]
+        # infer weekly periods via pandas frequency if available; else assume 7 days
+        freq = '7D'
+        if hasattr(ds.index, 'inferred_freq') and ds.index.inferred_freq is not None:
+            freq = ds.index.inferred_freq
 
-            # build forecast DF
-            fc_df = pd.DataFrame(forecast_cvars, columns=["Week_Ahead", "Predicted_CVaR (%)"]).set_index("Week_Ahead")
-
-            # find worst week (min CVaR)
-            worst_idx = fc_df["Predicted_CVaR (%)"].idxmin()
-            worst_val = fc_df["Predicted_CVaR (%)"].min()
-
-            st.markdown(f"**Forecast result:** Over the next **{forecast_horizon}** weeks the model predicts the *worst* CVaR at **week ahead = {worst_idx}** with predicted CVaR **{worst_val:.3f}%** (most negative expected tail weekly loss).")
-            st.markdown("**Interpretation:** This indicates that, under the model's assumption and stationary arrivals, the tail risk is expected to be highest around that horizon. Use this as an early-warning signal; combine with domain knowledge (seasonality, harvest schedules) before taking policy action.")
-
-            # Interactive forecast plot
-            if PLOTLY_AVAILABLE:
-                fig_fc = go.Figure()
-                fig_fc.add_trace(go.Bar(
-                    x=fc_df.index, y=fc_df["Predicted_CVaR (%)"],
-                    name='Predicted CVaR (%)'
-                ))
-                fig_fc.add_trace(go.Scatter(
-                    x=fc_df.index, y=fc_df["Predicted_CVaR (%)"], mode='lines+markers', name='CVaR trend'
-                ))
-                fig_fc.add_vline(x=worst_idx, line=dict(color='red', dash='dash'), annotation_text="Worst CVaR", annotation_position="top right")
-                fig_fc.update_layout(title="Forecasted Predicted CVaR for Future Weeks", xaxis_title="Week Ahead", yaxis_title="Predicted CVaR (%)", height=450)
-                st.plotly_chart(fig_fc, use_container_width=True)
+        for s in range(sims):
+            if use_regression:
+                # simulate arrivals path: assume random normal increments around last log arrivals mean/std
+                sim_arr_path = rng_fore.normal(last_train["Log_Arrivals"].mean(), last_train["Log_Arrivals"].std(), horizon)
+                sim_mu_path = reg.params[0] + reg.params[1] * sim_arr_path
+                sim_ret_path = rng_fore.normal(sim_mu_path, reg.resid.std())
             else:
-                # fallback matplotlib
-                fig2, ax2 = plt.subplots(figsize=(10, 4))
-                ax2.bar(fc_df.index, fc_df["Predicted_CVaR (%)"])
-                ax2.plot(fc_df.index, fc_df["Predicted_CVaR (%)"], marker='o')
-                ax2.axvline(worst_idx, color='red', linestyle='--', label='Worst CVaR')
-                ax2.set_xlabel("Week Ahead")
-                ax2.set_ylabel("Predicted CVaR (%)")
-                ax2.set_title("Forecasted Predicted CVaR for Future Weeks")
-                ax2.legend()
-                st.pyplot(fig2)
+                mu_f = last_train["Log_Returns"].mean()
+                sigma_f = last_train["Log_Returns"].std()
+                sim_ret_path = rng_fore.normal(mu_f, sigma_f, horizon)
 
-    else:
-        st.info("To run backtesting and CVaR forecast, your dataset must include columns named 'Modal' and 'Arrivals' (weekly).")
+            # find index of minimum return across horizon (worst fall)
+            min_idx = int(np.argmin(sim_ret_path))
+            min_positions.append(min_idx)
+
+        # compute expected week index and distribution
+        min_positions = np.array(min_positions)
+        # most frequent week index where worst falls happen
+        mode_index = int(pd.Series(min_positions).mode()[0])
+        # expected (mean) index
+        expected_index = int(np.round(min_positions.mean()))
+        # convert index to date
+        predicted_mode_date = pd.to_datetime(last_date) + pd.to_timedelta((mode_index + 1) * 7, unit='D')
+        predicted_expected_date = pd.to_datetime(last_date) + pd.to_timedelta((expected_index + 1) * 7, unit='D')
+
+        st.markdown(f"- Based on {sims:,} deterministic simulations over a {horizon}-week horizon:")
+        st.markdown(f"  - **Most likely week for worst fall (mode):** Week {mode_index+1} → around **{predicted_mode_date.date()}**")
+        st.markdown(f"  - **Expected week index (mean):** Week {expected_index+1} → around **{predicted_expected_date.date()}**")
+        st.markdown("  - *Note:* This uses a short-horizon simulation and deterministic seeding — results are reproducible for the same dataset and settings.")
+
+        # Small distribution summary plot using plotly
+        dist_fig = go.Figure()
+        counts = pd.Series(min_positions).value_counts().sort_index()
+        dist_fig.add_trace(go.Bar(x=[f"Week {i+1}" for i in counts.index], y=counts.values))
+        dist_fig.update_layout(title="Distribution of simulated worst-fall week (across simulations)",
+                               xaxis_title="Week index (1..horizon)", yaxis_title="Number of simulations")
+        st.plotly_chart(dist_fig, use_container_width=True)
+
 else:
-    st.info("Upload your weekly crop market data to begin analysis.")
+    if uploaded_file:
+        st.info("Change controls in the left sidebar and press **Run Analysis** when ready.")
+    else:
+        st.info("Upload your weekly crop market data to begin analysis.")
 
-# Footer
+# -------------------- Footer --------------------
 st.markdown("""
 <hr style="border:1px solid #ccc" />
-
 <div style="text-align: center; font-size: 14px; color: gray;">
     🚀 This app was built by <b>Suman L</b> <br>
     📬 For support or collaboration, contact: <a href="mailto:sumanecon.uas@outlook.com">sumanecon.uas@outlook.com</a>
