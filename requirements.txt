@@ -13,5 +13,4 @@ email-validator
 openpyxl
 seaborn 
 jinja2
-fpdf2==25.2
 python-dotenv
