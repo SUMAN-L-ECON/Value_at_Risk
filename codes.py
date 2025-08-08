@@ -265,7 +265,8 @@ if uploaded_file:
 - **Good News:** Lower chance of major losses
 {% endif %}
 
-**🛡️ Recommended Actions:**
+**🛡️Recommended Actions:**
+
 **Farmers**
 1. Stagger Planting – Adjust sowing windows to avoid synchronized harvests and market gluts  
 2. FPO-Led Direct Marketing – Leverage collective sales to institutional buyers for better price realization  
