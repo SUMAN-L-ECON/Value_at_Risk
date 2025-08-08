@@ -474,7 +474,6 @@ if uploaded_file:
                                 x=breaches.index,
                                 y=((np.exp(breaches["Actual_Return"]) - 1) * 100),
                                 mode="markers",
-                                marker=dict(color="black", size=8, symbol="x"),
                                 name="VaR Breach (Actual < VaR)",
                                 hovertemplate="Date: %{x}<br>Actual: %{y:.2f}%<extra></extra>",
                             )
