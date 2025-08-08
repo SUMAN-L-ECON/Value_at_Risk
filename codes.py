@@ -496,7 +496,7 @@ if uploaded_file:
                     ax.plot(bt_df.index, (np.exp(bt_df["MC_CVaR"]) - 1) * 100, label="Monte Carlo CVaR", color="purple", linestyle="-.")
                     breaches = bt_df[bt_df["Breach_VaR"]]
                     if not breaches.empty:
-                        ax.scatter(breaches.index, (np.exp(breaches["Actual_Return"]) - 1) * 100, marker="x", color="black", s=50, label="VaR Breach")
+                        ax.scatter(breaches.index, (np.exp(breaches["Actual_Return"]) - 1) * 100, label="VaR Breach")
                     ax.set_title(f"Backtest: Actual vs Monte Carlo VaR/CVaR ({col}) — Kupiec LR={LR_uc:.2f} p={kupiec_pvalue:.3f}")
                     ax.set_ylabel("Weekly Return (%)")
                     ax.legend()
