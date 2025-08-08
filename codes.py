@@ -220,7 +220,7 @@ if uploaded_file:
             param_var = mu + z_score * sigma
 
             # Monte Carlo simulations and CVaR
-            np.random.seed(44)
+            np.random.seed(42)
             sim_returns = np.random.normal(mu, sigma, size=int(num_simulations))
             mc_var = np.percentile(sim_returns, (1 - confidence_level) * 100)
             mc_cvar = sim_returns[sim_returns <= mc_var].mean()
