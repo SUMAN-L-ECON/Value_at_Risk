@@ -504,7 +504,7 @@ if uploaded_file:
                         st.markdown(
                             """
                         <div class="warning-box">
-                            <strong>⚠️ Kupiec Test:</strong> VaR calibration rejected at 5% significance (model may be miscalibrated).
+                            <strong>⚠️ Kupiec Test:</strong> Reject the null: Actual breaches ~ Expected breaches==> "Model is Bad").
                         </div>
                         """,
                             unsafe_allow_html=True,
@@ -513,7 +513,7 @@ if uploaded_file:
                         st.markdown(
                             """
                         <div class="success-box">
-                            <strong>✅ Kupiec Test:</strong> VaR calibration NOT rejected (no strong evidence of miscalibration).
+                            <strong>✅ Kupiec Test:</strong> Accept the null: Actual breaches ~ Expected breaches==> "Model is best").
                         </div>
                         """,
                             unsafe_allow_html=True,
