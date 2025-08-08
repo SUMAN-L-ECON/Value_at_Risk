@@ -266,13 +266,13 @@ if uploaded_file:
 {% endif %}
 
 **🛡️ Recommended Actions:**
--------------Farmers-----------------
+#-------------Farmers-----------------
 1.Stagger Planting – Adjust sowing windows to avoid synchronized harvests and market gluts
 2.FPO-Led Direct Marketing – Leverage collective sales to institutional buyers for better price realization
 3.Farm-Gate Value Addition – Process surplus into storable products to stabilize income during price crashes
 4.Arrange emergency funding of at least 15% of typical revenue
 5.Plan early for alternate crops to secure better prices and income
--------------Policy makers-----------------
+#-------------Policy makers-----------------
 1.Price Stabilization Fund – Deploy targeted procurement/interventions during glut periods
 2.Processing & Value Addition Incentives – Support decentralized tomato processing units to absorb surplus
 3.Market Intelligence Systems – Strengthen real-time price forecasting and advisory dissemination to farmers
