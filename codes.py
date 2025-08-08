@@ -554,17 +554,7 @@ if uploaded_file:
                     """,
                         unsafe_allow_html=True,
                     )
-                else:
-                    st.markdown(
-                        """
-                    <div class="warning-box">
-                        <strong>⚠️ Model Needs Attention</strong><br>
-                        Predictions don't match reality well. Use results with caution and consider multiple strategies.
-                    </div>
-                    """,
-                        unsafe_allow_html=True,
-                    )
-
+    
         # ===================== Future Risk Forecast =====================
         if run_forecast and "Modal" in df.columns and "Arrivals" in df.columns:
             st.markdown('<h2 class="sub-header">🔮 Future Risk Forecast</h2>', unsafe_allow_html=True)
