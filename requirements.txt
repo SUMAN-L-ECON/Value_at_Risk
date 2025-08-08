@@ -7,7 +7,7 @@ statsmodels
 scikit-learn
 yfinance
 reportlab
-fpdf
+fpdf2
 smtplib-client
 email-validator
 openpyxl
