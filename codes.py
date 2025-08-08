@@ -466,19 +466,7 @@ if uploaded_file:
                             hovertemplate="Date: %{x}<br>CVaR: %{y:.2f}%<extra></extra>",
                         )
                     )
-                    # Breaches markers
-                    breaches = bt_df[bt_df["Breach_VaR"]]
-                    if not breaches.empty:
-                        fig.add_trace(
-                            go.Scatter(
-                                x=breaches.index,
-                                y=((np.exp(breaches["Actual_Return"]) - 1) * 100),
-                                mode="markers",
-                                name="VaR Breach (Actual < VaR)",
-                                hovertemplate="Date: %{x}<br>Actual: %{y:.2f}%<extra></extra>",
-                            )
-                        )
-
+                    
                     fig.update_layout(
                         title=f"Backtest: Actual vs Monte Carlo VaR/CVaR ({col}) — Kupiec LR={LR_uc:.2f} p={kupiec_pvalue:.3f}",
                         xaxis_title="Date",
