@@ -10,7 +10,7 @@ from jinja2 import Template
 import warnings
 
 warnings.filterwarnings("ignore")
-np.random.seed(1)
+np.random.seed(52)
 
 # Try import plotly for interactive charts
 try:
@@ -220,7 +220,7 @@ if uploaded_file:
             param_var = mu + z_score * sigma
 
             # Monte Carlo simulations and CVaR
-            np.random.seed(44)
+            np.random.seed(52)
             sim_returns = np.random.normal(mu, sigma, size=int(num_simulations))
             mc_var = np.percentile(sim_returns, (1 - confidence_level) * 100)
             mc_cvar = sim_returns[sim_returns <= mc_var].mean()
@@ -381,7 +381,7 @@ if uploaded_file:
             ds = ds.dropna()
 
             if len(ds) > rolling_window:
-                np.random.seed(1)
+                np.random.seed(52)
                 backtest_results = []
                 for i in range(int(rolling_window), len(ds)):
                     train = ds.iloc[i - int(rolling_window) : i]
@@ -572,7 +572,7 @@ if uploaded_file:
             forecast_vars = []
 
             for h in forecast_weeks:
-                np.random.seed(1)
+                np.random.seed(52)
                 sim_arrivals_future = np.random.normal(mu_arr, sigma_arr, size=int(num_simulations))
                 sim_mu_future = model_latest.params[0] + model_latest.params[1] * sim_arrivals_future
                 sim_returns_future = np.random.normal(sim_mu_future, resid_sigma, size=int(num_simulations))
@@ -732,7 +732,7 @@ else:
     )
 
     if st.button("📊 Load Sample Data", type="primary"):
-        np.random.seed(1)
+        np.random.seed(52)
         dates = pd.date_range(start="2022-01-01", end="2024-12-31", freq="W")
         base_price = 50
         seasonal_factor = 10 * np.sin(2 * np.pi * np.arange(len(dates)) / 52)
