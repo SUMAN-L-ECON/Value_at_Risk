@@ -572,7 +572,7 @@ if uploaded_file:
             forecast_vars = []
 
             for h in forecast_weeks:
-                np.random.seed(52+h)
+                np.random.seed(20+h)
                 sim_arrivals_future = np.random.normal(mu_arr, sigma_arr, size=int(num_simulations))
                 sim_mu_future = model_latest.params[0] + model_latest.params[1] * sim_arrivals_future
                 sim_returns_future = np.random.normal(sim_mu_future, resid_sigma, size=int(num_simulations))
