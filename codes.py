@@ -10,7 +10,7 @@ from jinja2 import Template
 import warnings
 
 warnings.filterwarnings("ignore")
-np.random.seed(52)
+np.random.seed(20)
 
 # Try import plotly for interactive charts
 try:
@@ -572,7 +572,7 @@ if uploaded_file:
             forecast_vars = []
 
             for h in forecast_weeks:
-                np.random.seed(14+h)
+                np.random.seed(20+h)
                 sim_arrivals_future = np.random.normal(mu_arr, sigma_arr, size=int(num_simulations))
                 sim_mu_future = model_latest.params[0] + model_latest.params[1] * sim_arrivals_future
                 sim_returns_future = np.random.normal(sim_mu_future, resid_sigma, size=int(num_simulations))
@@ -732,7 +732,7 @@ else:
     )
 
     if st.button("📊 Load Sample Data", type="primary"):
-        np.random.seed(52)
+        np.random.seed(20)
         dates = pd.date_range(start="2022-01-01", end="2024-12-31", freq="W")
         base_price = 50
         seasonal_factor = 10 * np.sin(2 * np.pi * np.arange(len(dates)) / 52)
