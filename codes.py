@@ -347,90 +347,90 @@ if uploaded_file:
             #     st.pyplot(fig)
 
         # ====== Plot: combined view (Historical distribution + parametric + MC VaR + CVaR) ======
-if interactive_plots and PLOTLY_AVAILABLE:
-    fig = go.Figure()
-
-    # Histogram of historical log-returns
-    fig.add_trace(
-        go.Histogram(
-            x=log_returns,
-            nbinsx=50,
-            name="Historical Method",
-            opacity=0.6,
-        )
-    )
-
-    # Add parametric normal density curve (scaled)
-    xs = np.linspace(log_returns.min(), log_returns.max(), 200)
-    pdf_vals = (1 / (sigma * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((xs - mu) / sigma) ** 2)
-    # scale pdf to histogram height approximately
-    scale_factor = len(log_returns) * (log_returns.max() - log_returns.min()) / 50
-    fig.add_trace(go.Scatter(
-        x=xs, 
-        y=pdf_vals * scale_factor, 
-        mode="lines", 
-        name="Parametric Normal Method", 
-        line=dict(dash="dot")
-    ))
-
-    # Vertical lines for VaRs & CVaR (renamed with method references)
-    fig.add_vline(
-        x=hist_var, 
-        line=dict(color="black", dash="dash"), 
-        annotation_text=f"Historical Method VaR {to_pct(hist_var):.2f}%", 
-        annotation_position="top left"
-    )
-    fig.add_vline(
-        x=param_var, 
-        line=dict(color="green", dash="dash"), 
-        annotation_text=f"Parametric Normal Method VaR {to_pct(param_var):.2f}%", 
-        annotation_position="top left"
-    )
-    fig.add_vline(
-        x=mc_var, 
-        line=dict(color="red", dash="dash"), 
-        annotation_text=f"Monte Carlo Method VaR {to_pct(mc_var):.2f}%", 
-        annotation_position="top left"
-    )
-    fig.add_vline(
-        x=mc_cvar, 
-        line=dict(color="purple", dash="dash"), 
-        annotation_text=f"Monte Carlo Method CVaR {to_pct(mc_cvar):.2f}%", 
-        annotation_position="bottom left"
-    )
-
-    fig.update_layout(
-        title=f"Risk Distribution & VaR/CVaR - {col}",
-        xaxis_title="Log Returns",
-        yaxis_title="Frequency / scaled density",
-        bargap=0.1,
-        height=450,
-        showlegend=True,
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-else:
-    # Matplotlib fallback
-    fig, ax = plt.subplots(figsize=(10, 4))
-    sns.histplot(log_returns, bins=50, kde=False, ax=ax, label="Historical Method", color=None)
-
-    # density curve
-    xs = np.linspace(log_returns.min(), log_returns.max(), 200)
-    pdf_vals = (1 / (sigma * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((xs - mu) / sigma) ** 2)
-    # scale pdf
-    scale_factor = len(log_returns) * (log_returns.max() - log_returns.min()) / 50
-    ax.plot(xs, pdf_vals * scale_factor, linestyle="--", label="Parametric Normal Method")
-
-    # VaR lines (renamed with method references)
-    ax.axvline(hist_var, color="black", linestyle="--", label=f"Historical Method VaR {to_pct(hist_var):.2f}%")
-    ax.axvline(param_var, color="green", linestyle="--", label=f"Parametric Normal Method VaR {to_pct(param_var):.2f}%")
-    ax.axvline(mc_var, color="red", linestyle="--", label=f"Monte Carlo Method VaR {to_pct(mc_var):.2f}%")
-    ax.axvline(mc_cvar, color="purple", linestyle="--", label=f"Monte Carlo Method CVaR {to_pct(mc_cvar):.2f}%")
-
-    ax.set_title(f"Risk Distribution & VaR/CVaR - {col}")
-    ax.set_xlabel("Log Returns")
-    ax.legend()
-    st.pyplot(fig)
+            if interactive_plots and PLOTLY_AVAILABLE:
+                fig = go.Figure()
+            
+                # Histogram of historical log-returns
+                fig.add_trace(
+                    go.Histogram(
+                        x=log_returns,
+                        nbinsx=50,
+                        name="Historical Method",
+                        opacity=0.6,
+                    )
+                )
+            
+                # Add parametric normal density curve (scaled)
+                xs = np.linspace(log_returns.min(), log_returns.max(), 200)
+                pdf_vals = (1 / (sigma * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((xs - mu) / sigma) ** 2)
+                # scale pdf to histogram height approximately
+                scale_factor = len(log_returns) * (log_returns.max() - log_returns.min()) / 50
+                fig.add_trace(go.Scatter(
+                    x=xs, 
+                    y=pdf_vals * scale_factor, 
+                    mode="lines", 
+                    name="Parametric Normal Method", 
+                    line=dict(dash="dot")
+                ))
+            
+                # Vertical lines for VaRs & CVaR (renamed with method references)
+                fig.add_vline(
+                    x=hist_var, 
+                    line=dict(color="black", dash="dash"), 
+                    annotation_text=f"Historical Method VaR {to_pct(hist_var):.2f}%", 
+                    annotation_position="top left"
+                )
+                fig.add_vline(
+                    x=param_var, 
+                    line=dict(color="green", dash="dash"), 
+                    annotation_text=f"Parametric Normal Method VaR {to_pct(param_var):.2f}%", 
+                    annotation_position="top left"
+                )
+                fig.add_vline(
+                    x=mc_var, 
+                    line=dict(color="red", dash="dash"), 
+                    annotation_text=f"Monte Carlo Method VaR {to_pct(mc_var):.2f}%", 
+                    annotation_position="top left"
+                )
+                fig.add_vline(
+                    x=mc_cvar, 
+                    line=dict(color="purple", dash="dash"), 
+                    annotation_text=f"Monte Carlo Method CVaR {to_pct(mc_cvar):.2f}%", 
+                    annotation_position="bottom left"
+                )
+            
+                fig.update_layout(
+                    title=f"Risk Distribution & VaR/CVaR - {col}",
+                    xaxis_title="Log Returns",
+                    yaxis_title="Frequency / scaled density",
+                    bargap=0.1,
+                    height=450,
+                    showlegend=True,
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            
+            else:
+                # Matplotlib fallback
+                fig, ax = plt.subplots(figsize=(10, 4))
+                sns.histplot(log_returns, bins=50, kde=False, ax=ax, label="Historical Method", color=None)
+            
+                # density curve
+                xs = np.linspace(log_returns.min(), log_returns.max(), 200)
+                pdf_vals = (1 / (sigma * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((xs - mu) / sigma) ** 2)
+                # scale pdf
+                scale_factor = len(log_returns) * (log_returns.max() - log_returns.min()) / 50
+                ax.plot(xs, pdf_vals * scale_factor, linestyle="--", label="Parametric Normal Method")
+            
+                # VaR lines (renamed with method references)
+                ax.axvline(hist_var, color="black", linestyle="--", label=f"Historical Method VaR {to_pct(hist_var):.2f}%")
+                ax.axvline(param_var, color="green", linestyle="--", label=f"Parametric Normal Method VaR {to_pct(param_var):.2f}%")
+                ax.axvline(mc_var, color="red", linestyle="--", label=f"Monte Carlo Method VaR {to_pct(mc_var):.2f}%")
+                ax.axvline(mc_cvar, color="purple", linestyle="--", label=f"Monte Carlo Method CVaR {to_pct(mc_cvar):.2f}%")
+            
+                ax.set_title(f"Risk Distribution & VaR/CVaR - {col}")
+                ax.set_xlabel("Log Returns")
+                ax.legend()
+                st.pyplot(fig)
 
         # Display results table
         if results:
