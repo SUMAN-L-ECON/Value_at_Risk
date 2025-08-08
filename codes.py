@@ -10,7 +10,7 @@ from jinja2 import Template
 import warnings
 
 warnings.filterwarnings("ignore")
-np.random.seed(103)
+np.random.seed(1)
 
 # Try import plotly for interactive charts
 try:
@@ -247,7 +247,7 @@ if uploaded_file:
 
 **📈 Risk Summary ({{ conf_level }}% Confidence):**
 - **Historical Risk:** {{ hist }}% weekly loss
-- **Statistical Model Risk:** {{ param }}% weekly loss
+- **Parametric Model Risk:** {{ param }}% weekly loss
 - **Montecarlo Risk (VaR):** {{ mc }}% weekly loss
 - **ConditionalVaR Risk (CVaR):** {{ cvar }}% weekly loss
 
