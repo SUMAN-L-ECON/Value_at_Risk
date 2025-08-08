@@ -311,16 +311,16 @@ if uploaded_file:
                 fig.add_trace(go.Scatter(x=xs, y=pdf_vals * scale_factor, mode="lines", name="Parametric (Normal)"))
 
                 # Vertical lines for VaRs & CVaR with meaningful legend names
-                fig.add_vline(x=hist_var, line=dict(color="black", dash="dash")
-                fig.add_vline(x=param_var, line=dict(color="green", dash="dash")
-                fig.add_vline(x=mc_var, line=dict(color="red", dash="dash")
-                fig.add_vline(x=mc_cvar, line=dict(color="purple", dash="dash")
+                fig.add_vline(x=hist_var, line=dict(color="black", dash="dash"))
+                fig.add_vline(x=param_var, line=dict(color="green", dash="dash"))
+                fig.add_vline(x=mc_var, line=dict(color="red", dash="dash"))
+                fig.add_vline(x=mc_cvar, line=dict(color="purple", dash="dash"))
                               
                 # To show methods in legend explicitly, add invisible scatter traces with method names (helps legend clarity)
                 fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", marker=dict(color="black"), name="Historical VaR"))
                 fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", marker=dict(color="green"), name="Parametric VaR"))
                 fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", marker=dict(color="red"), name="Monte Carlo VaR"))
-                fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", marker=dict(color="purple"), name="Monte Carlo CVaR"))
+                fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", marker=dict(color="purple"), name="Conditional VaR"))
 
                 fig.update_layout(
                     title=f"Risk Distribution & Methods - {col}",
