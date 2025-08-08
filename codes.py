@@ -10,7 +10,7 @@ from jinja2 import Template
 import warnings
 
 warnings.filterwarnings("ignore")
-np.random.seed(44)
+np.random.seed(103)
 
 # Try import plotly for interactive charts
 try:
@@ -653,10 +653,16 @@ if uploaded_file:
                         <h4>🚨 {recommendation_level}</h4>
                         <p><strong>High risk detected around week {worst_idx}!</strong></p>
                         <ul>
-                            <li>Consider selling inventory before week {worst_idx-2 if worst_idx > 2 else 1}</li>
+                            <li>Stagger Planting – Adjust sowing windows to avoid synchronized harvests and market gluts</li>
+                            <li>FPO-Led Direct Marketing – Leverage collective sales to institutional buyers for better price realization</li>
+                            </li>Farm-Gate Value Addition – Process surplus into storable products to stabilize income during price crashes</li>
                             <li>Arrange emergency funding of at least 15% of typical revenue</li>
-                            <li>Contact buyers early to secure better prices</li>
-                            <li>Consider forward contracts to lock in current prices</li>
+                            <li>Plan early for alternate crops to secure better prices and income</li>
+
+                            <li>Policy makers</li>
+                            <li>Price Stabilization Fund – Deploy targeted procurement/interventions during glut periods</li>
+                            <li>Processing & Value Addition Incentives – Support decentralized tomato processing units to absorb surplus</li>
+                            <li>Market Intelligence Systems – Strengthen real-time price forecasting and advisory dissemination to farmers</li>
                         </ul>
                     </div>
                     """,
