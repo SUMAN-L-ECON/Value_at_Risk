@@ -249,7 +249,7 @@ if uploaded_file:
 - **Historical Risk:** {{ hist }}% weekly loss
 - **Statistical Model Risk:** {{ param }}% weekly loss
 - **Montecarlo Risk (VaR):** {{ mc }}% weekly loss
-- **Worst Case Risk (CVaR):** {{ cvar }}% weekly loss
+- **ConditionalVaR Risk (CVaR):** {{ cvar }}% weekly loss
 
 **🚨 Risk Level: {{ risk_level }}**
 
