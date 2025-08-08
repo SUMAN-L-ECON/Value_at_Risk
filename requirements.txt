@@ -1,9 +1,13 @@
 streamlit
 pandas
 numpy
-statsmodels
 matplotlib
-seaborn
 scipy
-jinja2
+statsmodels
+scikit-learn
+yfinance
+reportlab
+fpdf
+smtplib-client
+email-validator
 openpyxl
