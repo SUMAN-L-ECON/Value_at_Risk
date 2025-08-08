@@ -248,7 +248,7 @@ if uploaded_file:
 **📈 Risk Summary ({{ conf_level }}% Confidence):**
 - **Historical Risk:** {{ hist }}% weekly loss
 - **Statistical Model Risk:** {{ param }}% weekly loss
-- **Simulation Risk (VaR):** {{ mc }}% weekly loss
+- **Montecarlo Risk (VaR):** {{ mc }}% weekly loss
 - **Worst Case Risk (CVaR):** {{ cvar }}% weekly loss
 
 **🚨 Risk Level: {{ risk_level }}**
