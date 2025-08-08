@@ -314,7 +314,7 @@ if uploaded_file:
                 fig.add_vline(x=hist_var, line=dict(color="black", dash="dash"))
                 fig.add_vline(x=param_var, line=dict(color="green", dash="dash"))
                 fig.add_vline(x=mc_var, line=dict(color="red", dash="dash"))
-                fig.add_vline(x=mc_cvar, line=dict(color="purple", dash="dash"))
+                fig.add_vline(x=mc_cvar, line=dict(color="purple", dash="dash"), annotation_text=f"Conditional CVaR {to_pct(mc_cvar):.2f}%", annotation_position="top left"))
                               
                 # To show methods in legend explicitly, add invisible scatter traces with method names (helps legend clarity)
                 fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", marker=dict(color="black"), name="Historical VaR"))
