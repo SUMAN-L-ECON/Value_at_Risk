@@ -764,7 +764,7 @@ st.markdown("---")
 st.markdown(
     f"""
 <div style="text-align: center; padding: 20px; background-color: #f8f9fa; border-radius: 10px; margin-top: 30px;">
-    <h4 style="color: #2E8B57; margin-bottom: 10px;">🌾 Built for Farmers, By Economists</h4>
+    <h4 style="color: #2E8B57; margin-bottom: 10px;">🌾 Built for Farmers, By Young Economist</h4>
     <p style="color: #666; margin-bottom: 15px;">
         This app helps you understand market risks and make better farming decisions.<br>
         For questions or support, contact us below.
