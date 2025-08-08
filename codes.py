@@ -655,11 +655,10 @@ if uploaded_file:
                         <ul>
                             <li>Stagger Planting – Adjust sowing windows to avoid synchronized harvests and market gluts</li>
                             <li>FPO-Led Direct Marketing – Leverage collective sales to institutional buyers for better price realization</li>
-                            </li>Farm-Gate Value Addition – Process surplus into storable products to stabilize income during price crashes</li>
+                            <li>Farm-Gate Value Addition – Process surplus into storable products to stabilize income during price crashes</li>
                             <li>Arrange emergency funding of at least 15% of typical revenue</li>
                             <li>Plan early for alternate crops to secure better prices and income</li>
-
-                            <li>Policy makers</li>
+                            <li>-------------Policy makers-----------------</li>
                             <li>Price Stabilization Fund – Deploy targeted procurement/interventions during glut periods</li>
                             <li>Processing & Value Addition Incentives – Support decentralized tomato processing units to absorb surplus</li>
                             <li>Market Intelligence Systems – Strengthen real-time price forecasting and advisory dissemination to farmers</li>
