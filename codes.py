@@ -104,7 +104,7 @@ if uploaded_file:
         # Historical VaR
         hist_var = np.percentile(log_returns, (1 - confidence_level) * 100)
         # Parametric VaR
-        param_var = mu - z_score * sigma
+        param_var = mu + z_score * sigma
         # Monte Carlo VaR & CVaR (global simulation)
         sim_returns = np.random.normal(mu, sigma, size=int(num_simulations))
         mc_var = np.percentile(sim_returns, (1 - confidence_level) * 100)
