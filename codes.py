@@ -235,8 +235,8 @@ if uploaded_file:
                     "Market": col,
                     "Historical VaR (%)": round(to_pct(hist_var), 3),
                     "Parametric VaR (%)": round(to_pct(param_var), 3),
-                    "Monte Carlo VaR (%)": round(to_pct(mc_var), 3),
-                    "Monte Carlo CVaR (%)": round(to_pct(mc_cvar), 3),
+                    "Conditional VaR (%)": round(to_pct(mc_var), 3),
+                    "Conditional VaR (%)": round(to_pct(mc_cvar), 3),
                 }
             )
 
@@ -250,7 +250,7 @@ if uploaded_file:
 - **Historical Risk:** {{ hist }}% weekly loss
 - **Parametric Model Risk:** {{ param }}% weekly loss
 - **Montecarlo Risk (VaR):** {{ mc }}% weekly loss
-- **ConditionalVaR Risk (CVaR):** {{ cvar }}% weekly loss
+- **Conditional VaR Risk (CVaR):** {{ cvar }}% weekly loss
 
 **🚨 Risk Level: {{ risk_level }}**
 
@@ -353,7 +353,7 @@ if uploaded_file:
                 ax.axvline(hist_var, color="black", linestyle="--", label=f"Historical VaR {to_pct(hist_var):.2f}%")
                 ax.axvline(param_var, color="green", linestyle="--", label=f"Parametric VaR {to_pct(param_var):.2f}%")
                 ax.axvline(mc_var, color="red", linestyle="--", label=f"Monte Carlo VaR {to_pct(mc_var):.2f}%")
-                ax.axvline(mc_cvar, color="purple", linestyle="--", label=f"Monte Carlo CVaR {to_pct(mc_cvar):.2f}%")
+                ax.axvline(mc_cvar, color="purple", linestyle="--", label=f"Conditional VaR {to_pct(mc_cvar):.2f}%")
                 ax.set_title(f"Risk Distribution & Methods - {col}")
                 ax.set_xlabel("Log Returns")
                 ax.legend()
@@ -471,7 +471,7 @@ if uploaded_file:
                             x=bt_df.index,
                             y=((np.exp(bt_df["MC_CVaR"]) - 1) * 100),
                             mode="lines",
-                            name="Monte Carlo CVaR (%)",
+                            name="Conditional VaR (%)",
                             line=dict(color="purple", dash="dot"),
                             hovertemplate="Date: %{x}<br>CVaR: %{y:.2f}%<extra></extra>",
                         )
@@ -490,7 +490,7 @@ if uploaded_file:
                     fig, ax = plt.subplots(figsize=(12, 5))
                     ax.plot(bt_df.index, (np.exp(bt_df["Actual_Return"]) - 1) * 100, label="Actual Returns", alpha=0.7)
                     ax.plot(bt_df.index, (np.exp(bt_df["MC_VaR"]) - 1) * 100, label="Monte Carlo VaR", color="red", linestyle="--")
-                    ax.plot(bt_df.index, (np.exp(bt_df["MC_CVaR"]) - 1) * 100, label="Monte Carlo CVaR", color="purple", linestyle="-.")
+                    ax.plot(bt_df.index, (np.exp(bt_df["MC_CVaR"]) - 1) * 100, label="Conditional CVaR", color="purple", linestyle="-.")
                     breaches = bt_df[bt_df["Breach_VaR"]]
                     if not breaches.empty:
                         ax.scatter(breaches.index, (np.exp(breaches["Actual_Return"]) - 1) * 100, label="VaR Breach")
