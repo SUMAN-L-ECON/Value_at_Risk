@@ -31,7 +31,7 @@ st.set_page_config(
 st.markdown(
     """
 <style>
-    .main-header { text-align: center; color: #2E8B57; font-size: 2.5rem; font-weight: bold; margin-bottom: 1rem; }
+    .main-header { text-align: center; color: #2E8B57; font-size: 2rem; font-weight: bold; margin-bottom: 1rem; }
     .sub-header { color: #4682B4; font-size: 1.5rem; font-weight: bold; margin: 1rem 0; }
     .info-box { background-color: #f0f8ff; padding: 1rem; border-radius: 10px; border-left: 5px solid #4682B4; margin: 1rem 0; }
     .warning-box { background-color: #fff3cd; padding: 1rem; border-radius: 10px; border-left: 5px solid #ffc107; margin: 1rem 0; }
@@ -42,8 +42,7 @@ st.markdown(
 )
 
 # Header
-st.markdown('<h1 class="main-header">RAISE_X 
-            (Real-time insights on scenario evaluation)</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">RAISE_X (Real-time insights on scenario evaluation)</h1>', unsafe_allow_html=True)
 st.markdown('<h2 class="main-header">🍅 Market Risk Analysis for Farmers</h2>', unsafe_allow_html=True)
 st.markdown('<h3 style="text-align: center; color: #666;">Predict Market Risks & Plan Better</h3>', unsafe_allow_html=True)
 
