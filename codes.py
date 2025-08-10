@@ -43,7 +43,7 @@ st.markdown(
 
 # Header
 st.markdown('<h1 class="main-header">RAISE_X 
-(Real-time insights on scenario evaluation)</h1>', unsafe_allow_html=True)
+            (Real-time insights on scenario evaluation)</h1>', unsafe_allow_html=True)
 st.markdown('<h2 class="main-header">🍅 Market Risk Analysis for Farmers</h2>', unsafe_allow_html=True)
 st.markdown('<h3 style="text-align: center; color: #666;">Predict Market Risks & Plan Better</h3>', unsafe_allow_html=True)
 
