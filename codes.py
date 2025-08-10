@@ -772,7 +772,7 @@ st.markdown(
     <div style="display: flex; justify-content: center; gap: 30px; flex-wrap: wrap;">
         <div><strong>📧 Email:</strong> sumanecon.uas@outlook.in</div>
         <div><strong>👨‍💼 Developer:</strong> Suman L</div>
-        <div><strong>🎓 University:</strong> Dept. of Agricultural Economics, UAS Bengaluru</div>
+        <div><strong>🎓 University:</strong> UAS Bengaluru</div>
     </div>
     <p style="font-size: 12px; color: #999; margin-top: 15px;">
         Version 2.1 | Enhanced for Professional Use | Updated {pd.Timestamp.now().strftime("%B %Y")}
